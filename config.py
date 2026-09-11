@@ -29,6 +29,11 @@ MAX_SCORE = 3
 # Période de scrutation du lecteur RFID (secondes)
 RFID_POLL_INTERVAL_S = 0.2
 
+# Un tag resté sur le banc est relu à chaque scrutation. Tant qu'il est revu dans
+# ce délai, il s'agit de la même présentation (pas de nouveau cycle de pesée) ;
+# il faut le retirer au moins ce temps pour démarrer un nouveau cycle (secondes).
+RESCAN_GRACE_PERIOD_S = 2.0
+
 # Intervalle d'envoi du heartbeat SSE pour maintenir la connexion ouverte (secondes)
 SSE_HEARTBEAT_INTERVAL = 15.0
 

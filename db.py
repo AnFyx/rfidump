@@ -84,3 +84,12 @@ def record_weighing(
             (uid, etablissement, weight_kg, score, photo_path, created_at),
         )
         return int(cursor.lastrowid)
+
+
+def attach_photo(weighing_id: int, photo_path: str, db_path: Path = DB_PATH) -> None:
+    """Rattache une photo de justification à une pesée déjà enregistrée."""
+    with closing(get_connection(db_path)) as connection, connection:
+        connection.execute(
+            "UPDATE weighings SET photo_path = ? WHERE id = ?",
+            (photo_path, weighing_id),
+        )

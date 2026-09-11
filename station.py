@@ -10,18 +10,20 @@ from __future__ import annotations
 
 import logging
 import threading
+import time
 from dataclasses import asdict, dataclass
 from queue import Full, Queue
-from typing import List, Optional
+from typing import Callable, List, Optional
 
 from config import (
     MAX_SCORE,
     MIN_SCORE,
     PHOTO_DIR,
+    RESCAN_GRACE_PERIOD_S,
     RFID_POLL_INTERVAL_S,
     SSE_QUEUE_MAXSIZE,
 )
-from db import lookup_bin, record_weighing
+from db import attach_photo, lookup_bin, record_weighing
 from hardware import HardwareBundle
 
 logger = logging.getLogger(__name__)
@@ -75,13 +77,23 @@ class EventBroker:
 class Station:
     """Coordonne le matériel, l'état courant et la diffusion vers le web."""
 
-    def __init__(self, hardware: HardwareBundle) -> None:
+    def __init__(
+        self,
+        hardware: HardwareBundle,
+        clock: Callable[[], float] = time.monotonic,
+    ) -> None:
         self._hardware = hardware
         self._broker = EventBroker()
         self._state = StationSnapshot()
         self._lock = threading.Lock()
         self._stop_event = threading.Event()
         self._poll_thread: Optional[threading.Thread] = None
+        # Horloge injectable (tests) pour la fenêtre de relecture d'un même tag.
+        self._clock = clock
+        self._last_scan_uid: Optional[str] = None
+        self._last_scan_at = 0.0
+        # Identifiant de la pesée enregistrée pour le bac courant (None avant la note).
+        self._weighing_id: Optional[int] = None
 
     @property
     def broker(self) -> EventBroker:
@@ -131,7 +143,24 @@ class Station:
     # --- Traitements métier --------------------------------------------
 
     def handle_scan(self, uid: str) -> None:
-        """Traite la présentation d'un bac : résolution établissement + pesée."""
+        """Traite la présentation d'un bac : résolution établissement + pesée.
+
+        Un tag laissé sur le banc est relu à chaque scrutation : sans garde, chaque
+        relecture relancerait un cycle (note effacée, nouvelle pesée possible, photo
+        perdue). Une relecture du même UID dans RESCAN_GRACE_PERIOD_S est donc
+        ignorée, et prolonge la présentation en cours.
+        """
+        now = self._clock()
+        with self._lock:
+            same_presentation = (
+                uid == self._last_scan_uid
+                and now - self._last_scan_at < RESCAN_GRACE_PERIOD_S
+            )
+            self._last_scan_uid = uid
+            self._last_scan_at = now
+        if same_presentation:
+            return
+
         etablissement = lookup_bin(uid)
         weight = self._hardware.scale.read_weight_kg()
         known = etablissement is not None
@@ -149,6 +178,7 @@ class Station:
                     else "Bac INCONNU — vérifier le tag"
                 ),
             )
+            self._weighing_id = None
         self._publish_state()
 
     def handle_score(self, value: int) -> None:
@@ -168,8 +198,12 @@ class Station:
             if not state.bin_known or state.etablissement is None:
                 logger.info("Note refusée : bac inconnu")
                 return
+            if state.score is not None:
+                # Double appui (gants, rebond) : une seule pesée par présentation.
+                logger.info("Note déjà enregistrée pour ce bac : appui ignoré")
+                return
             weight = state.weight_kg if state.weight_kg is not None else 0.0
-            record_weighing(
+            self._weighing_id = record_weighing(
                 uid=state.uid,
                 etablissement=state.etablissement,
                 weight_kg=weight,
@@ -181,17 +215,28 @@ class Station:
         self._publish_state()
 
     def handle_photo(self) -> None:
-        """Capture une photo de justification et l'attache à l'état courant."""
+        """Capture une photo de justification et l'attache au bac courant.
+
+        Prise avant la note, la photo est enregistrée avec la pesée. Prise après,
+        elle est rattachée à la pesée déjà créée au lieu d'être perdue.
+        """
         with self._lock:
-            has_bin = self._state.uid is not None
-        if not has_bin:
+            requested_for_uid = self._state.uid
+        if requested_for_uid is None:
             logger.info("Photo demandée sans bac présent : ignorée")
             return
         # La capture peut être lente : on la fait hors verrou.
         photo_path = self._hardware.camera.capture(PHOTO_DIR)
         with self._lock:
+            if self._state.uid != requested_for_uid:
+                logger.warning("Bac changé pendant la capture : photo non rattachée")
+                return
             self._state.photo_path = photo_path
-            self._state.message = "Photo capturée"
+            if self._weighing_id is not None:
+                attach_photo(self._weighing_id, photo_path)
+                self._state.message = "Photo ajoutée à la pesée"
+            else:
+                self._state.message = "Photo capturée"
         self._publish_state()
 
     def _publish_state(self) -> None:
