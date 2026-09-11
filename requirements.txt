@@ -1,0 +1,5 @@
+# Dépendances installées via pip (le reste vient des paquets apt du système — voir README).
+# Versions épinglées pour reproductibilité.
+
+# Lecteur RC522 (utilisé uniquement en mode "real" sur le Raspberry Pi).
+mfrc522==0.0.7

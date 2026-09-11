@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="480" height="360" viewBox="0 0 480 360" role="img" aria-label="Photo de justification simulée">
+    <rect width="480" height="360" fill="#3a3a32"/>
+    <rect x="20" y="20" width="440" height="320" fill="none" stroke="#6a6a5a" stroke-width="2" stroke-dasharray="8 6"/>
+    <text x="240" y="170" fill="#cfcfc0" font-family="Arial, sans-serif" font-size="26" text-anchor="middle">Photo simulée</text>
+    <text x="240" y="205" fill="#9a9a88" font-family="Arial, sans-serif" font-size="16" text-anchor="middle">contenu du bac (justification)</text>
+</svg>

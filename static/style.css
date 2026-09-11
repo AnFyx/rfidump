@@ -1,0 +1,121 @@
+:root {
+    --green: #2e7d32;
+    --bg: #f4f4f0;
+    --text: #2b2b2b;
+    --accent: #c9a227;
+    --alert: #b00020;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: Arial, Helvetica, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+}
+
+header {
+    background: var(--green);
+    color: #fff;
+    padding: 1rem 2rem;
+}
+
+header h1 {
+    margin: 0 0 0.25rem;
+    font-size: 1.6rem;
+}
+
+.message {
+    margin: 0;
+    font-size: 1.2rem;
+}
+
+main {
+    display: flex;
+    gap: 2rem;
+    padding: 2rem;
+    flex-wrap: wrap;
+}
+
+.info {
+    flex: 1 1 320px;
+}
+
+.field {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    border-bottom: 1px solid #ddd;
+    padding: 0.75rem 0;
+}
+
+.label {
+    font-size: 1.1rem;
+    color: #666;
+}
+
+.value {
+    font-size: 1.6rem;
+    font-weight: bold;
+}
+
+.stars {
+    color: var(--accent);
+    letter-spacing: 0.1em;
+}
+
+.photo {
+    flex: 1 1 320px;
+    text-align: center;
+}
+
+.photo img {
+    max-width: 100%;
+    border-radius: 8px;
+}
+
+body.unknown-bin header {
+    background: var(--alert);
+}
+
+.sim-panel {
+    margin: 1rem 2rem 2rem;
+    padding: 1rem;
+    border: 2px dashed #999;
+    border-radius: 8px;
+    background: #fff;
+}
+
+.sim-panel h2 {
+    margin-top: 0;
+}
+
+.sim-note {
+    color: #888;
+    font-style: italic;
+}
+
+.sim-group {
+    margin: 0.75rem 0;
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+button {
+    padding: 0.6rem 1rem;
+    font-size: 1rem;
+    border: none;
+    border-radius: 6px;
+    background: var(--green);
+    color: #fff;
+    cursor: pointer;
+}
+
+button:hover {
+    opacity: 0.9;
+}

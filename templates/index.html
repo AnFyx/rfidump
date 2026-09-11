@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Poste de pesée — Les Alchimistes</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <header>
+        <h1>Poste de pesée biodéchets</h1>
+        <p id="message" class="message">Connexion…</p>
+    </header>
+
+    <main>
+        <section class="info">
+            <div class="field">
+                <span class="label">Établissement</span>
+                <span id="etablissement" class="value">—</span>
+            </div>
+            <div class="field">
+                <span class="label">UID bac</span>
+                <span id="uid" class="value">—</span>
+            </div>
+            <div class="field">
+                <span class="label">Poids</span>
+                <span id="weight" class="value">—</span>
+            </div>
+            <div class="field">
+                <span class="label">Note</span>
+                <span id="score" class="value stars">—</span>
+            </div>
+        </section>
+
+        <section class="photo">
+            <img id="photo" alt="Photo de justification" src="" hidden>
+            <p id="photo-placeholder">Aucune photo</p>
+        </section>
+    </main>
+
+    {% if sim_mode %}
+    <section class="sim-panel">
+        <h2>Panneau de simulation</h2>
+        <p class="sim-note">Visible en mode simulation uniquement — remplace le matériel.</p>
+        <div class="sim-group">
+            <span>Présenter un bac :</span>
+            <button class="sim-present" data-uid="DEMO-UID-0001">Cantine J. Moulin</button>
+            <button class="sim-present" data-uid="DEMO-UID-0002">Resto Gay-Lussac</button>
+            <button class="sim-present" data-uid="DEMO-UID-0003">EHPAD Oliviers</button>
+            <button class="sim-present" data-uid="UID-INCONNU-9999">Bac inconnu</button>
+        </div>
+        <div class="sim-group">
+            <span>Note :</span>
+            <button class="sim-score" data-value="1">★</button>
+            <button class="sim-score" data-value="2">★★</button>
+            <button class="sim-score" data-value="3">★★★</button>
+        </div>
+        <div class="sim-group">
+            <button id="sim-photo">Prendre la photo</button>
+        </div>
+    </section>
+    {% endif %}
+
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>
