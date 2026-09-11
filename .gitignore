@@ -1,0 +1,18 @@
+# Données produites à l'exécution : jamais versionnées
+station.db
+station.db-journal
+static/photos/*
+!static/photos/placeholder.svg
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+
+# Éditeurs et système
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store
