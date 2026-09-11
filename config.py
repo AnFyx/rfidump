@@ -8,8 +8,9 @@ from pathlib import Path
 # Répertoire racine du projet
 BASE_DIR = Path(__file__).resolve().parent
 
-# Base de données SQLite locale (UID des bacs + historique des pesées)
-DB_PATH = BASE_DIR / "station.db"
+# Base de données SQLite locale (UID des bacs + historique des pesées).
+# Surchargeable par STATION_DB_PATH (tests, ou base hors du dossier du code).
+DB_PATH = Path(os.environ.get("STATION_DB_PATH", BASE_DIR / "station.db"))
 
 # Répertoire de stockage des photos de justification
 PHOTO_DIR = BASE_DIR / "static" / "photos"
@@ -34,8 +35,27 @@ SSE_HEARTBEAT_INTERVAL = 15.0
 # Taille max de la file d'événements par client SSE (borne anti-saturation mémoire)
 SSE_QUEUE_MAXSIZE = 100
 
-# Interface et port d'écoute du serveur.
-# 0.0.0.0 = écoute sur toutes les interfaces, nécessaire pour joindre le Pi
-# depuis le PC sur le LAN. Voir les notes de sécurité du README (réseau de confiance).
-HOST = "0.0.0.0"
-PORT = 8000
+# Interface d'écoute du serveur. Par défaut, la machine locale uniquement :
+# l'exposition au réseau doit être un choix explicite. Sur le Pi, pour afficher
+# la page depuis un autre poste du LAN : STATION_HOST=0.0.0.0 (réseau de confiance
+# uniquement, voir la section sécurité du README).
+HOST = os.environ.get("STATION_HOST", "127.0.0.1")
+
+# Port d'écoute, surchargeable par STATION_PORT.
+_DEFAULT_PORT = 8000
+_MIN_PORT = 1
+_MAX_PORT = 65535
+
+
+def _read_port(raw_value: str) -> int:
+    """Convertit STATION_PORT en entier valide, ou échoue fermé au démarrage."""
+    try:
+        port = int(raw_value)
+    except ValueError as exc:
+        raise ValueError(f"STATION_PORT invalide : {raw_value!r}") from exc
+    if not _MIN_PORT <= port <= _MAX_PORT:
+        raise ValueError(f"STATION_PORT hors bornes : {port}")
+    return port
+
+
+PORT = _read_port(os.environ.get("STATION_PORT", str(_DEFAULT_PORT)))
