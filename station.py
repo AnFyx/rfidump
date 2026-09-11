@@ -21,6 +21,7 @@ from config import (
     PHOTO_DIR,
     RESCAN_GRACE_PERIOD_S,
     RFID_POLL_INTERVAL_S,
+    SSE_MAX_CLIENTS,
     SSE_QUEUE_MAXSIZE,
 )
 from db import attach_photo, lookup_bin, record_weighing
@@ -45,14 +46,18 @@ class StationSnapshot:
 class EventBroker:
     """Diffuse les événements d'état à tous les clients SSE abonnés."""
 
-    def __init__(self) -> None:
+    def __init__(self, max_subscribers: int = SSE_MAX_CLIENTS) -> None:
         self._subscribers: List[Queue] = []
         self._lock = threading.Lock()
+        self._max_subscribers = max_subscribers
 
-    def subscribe(self) -> Queue:
-        """Crée une file bornée pour un nouveau client et l'enregistre."""
-        subscriber: Queue = Queue(maxsize=SSE_QUEUE_MAXSIZE)
+    def subscribe(self) -> Optional[Queue]:
+        """Crée une file bornée pour un nouveau client, ou None si la limite est atteinte."""
         with self._lock:
+            if len(self._subscribers) >= self._max_subscribers:
+                logger.warning("Limite de clients SSE atteinte : connexion refusée")
+                return None
+            subscriber: Queue = Queue(maxsize=SSE_QUEUE_MAXSIZE)
             self._subscribers.append(subscriber)
         return subscriber
 

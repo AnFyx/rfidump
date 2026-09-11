@@ -40,6 +40,13 @@ SSE_HEARTBEAT_INTERVAL = 15.0
 # Taille max de la file d'événements par client SSE (borne anti-saturation mémoire)
 SSE_QUEUE_MAXSIZE = 100
 
+# Nombre max de clients SSE simultanés : chaque client occupe un thread du serveur
+# pendant toute sa connexion ; sans borne, ouvrir des connexions épuise le serveur.
+SSE_MAX_CLIENTS = 10
+
+# Longueur max d'un UID accepté par l'endpoint de simulation
+MAX_UID_LENGTH = 64
+
 # Interface d'écoute du serveur. Par défaut, la machine locale uniquement :
 # l'exposition au réseau doit être un choix explicite. Sur le Pi, pour afficher
 # la page depuis un autre poste du LAN : STATION_HOST=0.0.0.0 (réseau de confiance

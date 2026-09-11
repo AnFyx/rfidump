@@ -19,6 +19,7 @@ from config import (
     HARDWARE_MODE,
     HOST,
     MAX_SCORE,
+    MAX_UID_LENGTH,
     MIN_SCORE,
     PHOTO_DIR,
     PORT,
@@ -73,9 +74,13 @@ def state() -> Response:
 @app.route("/events")
 def events() -> Response:
     """Flux SSE : pousse chaque changement d'état au navigateur."""
+    subscriber = _station.broker.subscribe()
+    if subscriber is None:
+        response = Response("Trop de clients connectés\n", status=503, mimetype="text/plain")
+        response.headers["Retry-After"] = str(int(SSE_HEARTBEAT_INTERVAL))
+        return response
 
     def stream() -> Iterator[str]:
-        subscriber = _station.broker.subscribe()
         try:
             # État courant immédiat, sans attendre le premier événement.
             yield _format_sse(_station.snapshot())
@@ -96,14 +101,29 @@ def events() -> Response:
 # Ils alimentent exactement les mêmes handlers que le matériel réel.
 
 
+def _require_sim_json() -> dict:
+    """Refuse hors mode sim, exige un corps JSON, et retourne le dictionnaire reçu.
+
+    Exiger `Content-Type: application/json` empêche un site tiers de déclencher
+    ces commandes par un simple formulaire : une requête JSON cross-origin impose
+    une vérification préalable (preflight) que ce serveur n'autorise pas.
+    """
+    if HARDWARE_MODE != "sim":
+        abort(403)
+    if not request.is_json:
+        abort(415, description="Corps JSON attendu")
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict):
+        abort(400, description="Objet JSON attendu")
+    return payload
+
+
 @app.route("/sim/present", methods=["POST"])
 def sim_present() -> Response:
     """Simule la présentation d'un bac (UID dans le corps JSON)."""
-    if HARDWARE_MODE != "sim":
-        abort(403)
-    payload = request.get_json(silent=True) or {}
+    payload = _require_sim_json()
     uid = payload.get("uid")
-    if not isinstance(uid, str) or not uid.strip():
+    if not isinstance(uid, str) or not uid.strip() or len(uid) > MAX_UID_LENGTH:
         abort(400, description="UID manquant ou invalide")
     # En simulation, on tire un nouveau poids puis on injecte l'UID.
     _hardware.scale.new_load()  # type: ignore[attr-defined]
@@ -114,9 +134,7 @@ def sim_present() -> Response:
 @app.route("/sim/score", methods=["POST"])
 def sim_score() -> Response:
     """Simule un appui sur un bouton étoile."""
-    if HARDWARE_MODE != "sim":
-        abort(403)
-    payload = request.get_json(silent=True) or {}
+    payload = _require_sim_json()
     value = payload.get("value")
     # bool est sous-type de int en Python : on l'exclut explicitement.
     if isinstance(value, bool) or not isinstance(value, int):
@@ -130,8 +148,7 @@ def sim_score() -> Response:
 @app.route("/sim/photo", methods=["POST"])
 def sim_photo() -> Response:
     """Simule un appui sur le bouton photo."""
-    if HARDWARE_MODE != "sim":
-        abort(403)
+    _require_sim_json()
     _hardware.buttons.press_photo()  # type: ignore[attr-defined]
     return jsonify({"ok": True})
 
